@@ -1,1 +1,59 @@
+import machine
+import utime
+
+
+BUTTON = machine.Pin(16, machine.Pin.IN, machine.Pin.PULL_DOWN)
+LED = machine.Pin(18, machine.Pin.OUT)
+
+DEBOUNCE_MS = 50
+SLOW_TOGGLE_MS = 1000  
+FAST_TOGGLE_MS = 250
+
+mode = 0  
+led_state = 0
+last_button = BUTTON.value()
+last_press_ms = utime.ticks_ms()
+last_toggle_ms = utime.ticks_ms()
+
+
+def change_mode(new_mode):
+    global mode, led_state, last_toggle_ms
+
+    mode = new_mode
+    last_toggle_ms = utime.ticks_ms()
+
+    if mode == 0:
+        led_state = 0
+        LED.value(0)
+    else:
+        led_state = 1
+        LED.value(1)
+
+
+while True:
+    now = utime.ticks_ms()
+    button_value = BUTTON.value()
+
+    
+    if button_value == 1 and last_button == 0:
+        if utime.ticks_diff(now, last_press_ms) > DEBOUNCE_MS:
+            change_mode((mode + 1) % 3)
+            last_press_ms = now
+
+    last_button = button_value
+
+    if mode == 1:
+        toggle_delay_ms = SLOW_TOGGLE_MS
+    elif mode == 2:
+        toggle_delay_ms = FAST_TOGGLE_MS
+    else:
+        toggle_delay_ms = None
+
+    if toggle_delay_ms is not None:
+        if utime.ticks_diff(now, last_toggle_ms) >= toggle_delay_ms:
+            led_state = 1 - led_state
+            LED.value(led_state)
+            last_toggle_ms = now
+
+    utime.sleep_ms(10)
 
